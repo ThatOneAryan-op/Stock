@@ -10,14 +10,24 @@ import json
 
 # 1. Credentials Setup
 creds_json = os.environ.get('GCP_CREDENTIALS')
+if not creds_json:
+    raise ValueError("ERROR: GCP_CREDENTIALS secret is missing or empty! "
+                     "Please add it in GitHub → Settings → Secrets → Actions.")
+
 creds_dict = json.loads(creds_json)
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
 
 # अपनी गूगल शीट की ID यहाँ डालें (URL के बीच का हिस्सा)
-spreadsheet_id = "19PNdud1UaphbMvoGrMkQV4SwldPplLkGDNxg5YlZpSE"
-worksheet = client.open_by_key(spreadsheet_id).worksheet("Top 250 Stocks")
+spreadsheet_id = "यहाँ_अपनी_शीट_की_ID_डालें"
+
+try:
+    worksheet = client.open_by_key(spreadsheet_id).worksheet("Top 250 Stocks")
+except gspread.exceptions.WorksheetNotFound:
+    spreadsheet = client.open_by_key(spreadsheet_id)
+    worksheet = spreadsheet.add_worksheet(title="Top 250 Stocks", rows=300, cols=20)
+    print("Sheet tab created automatically.")
 
 
 # 2. NSE UDiFF Data Fetcher
@@ -84,3 +94,4 @@ if data_to_insert:
     status_msg = f"Data Date: {fetched_date_str} | Last Update: {ist_now} (IST)"
     worksheet.update('K2', [[status_msg]])
     print("SUCCESS: Sheet Updated!")
+
